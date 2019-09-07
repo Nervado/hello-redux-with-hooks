@@ -1,30 +1,42 @@
-/* eslint-disable jsx-a11y/control-has-associated-label */
 import React from 'react';
-import { connect } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
-import { bindActionCreators } from 'redux';
 import {
   MdRemoveCircleOutline,
   MdAddCircleOutline,
   MdDelete,
 } from 'react-icons/md';
 
-import {formatPrice} from '../../util/format'
+import { formatPrice } from '../../util/format';
 import { Container, ProductTable, Total } from './styles';
 
 import * as CartActions from '../../store/modules/cart/actions';
 
-function Cart({ cart, total, removeFromCart , updateAmmount}) {
-  
-  function incrementAmount(product){
-    updateAmmount(product.id, product.ammount + 1);
-    
+export default function Cart() {
+  const total = useSelector(state =>
+    formatPrice(
+      state.cart.reduce((total_, product) => {
+        return total_ + product.ammount * product.price;
+      }, 0)
+    )
+  );
+
+  const cart = useSelector(state =>
+    state.cart.map(product => ({
+      ...product,
+      subtotal: formatPrice(product.price * product.ammount),
+    }))
+  );
+
+  const dispatch = useDispatch();
+
+  function incrementAmount(product) {
+    dispatch(CartActions.updateAmmount(product.id, product.ammount + 1));
   }
 
-  function decrementAmount(product){
-    updateAmmount(product.id, product.ammount - 1);
-    
-  };
+  function decrementAmount(product) {
+    dispatch(CartActions.updateAmmount(product.id, product.ammount - 1));
+  }
 
   return (
     <Container>
@@ -51,11 +63,19 @@ function Cart({ cart, total, removeFromCart , updateAmmount}) {
               <td>
                 <div>
                   <button type="button">
-                    <MdRemoveCircleOutline size={20} color="#7159c1" onClick={()=> decrementAmount(product)}/>
+                    <MdRemoveCircleOutline
+                      size={20}
+                      color="#7159c1"
+                      onClick={() => decrementAmount(product)}
+                    />
                   </button>
                   <input type="number" readOnly value={product.ammount} />
                   <button type="button">
-                    <MdAddCircleOutline size={20} color="#7159c1" onClick={()=> incrementAmount(product)}/>
+                    <MdAddCircleOutline
+                      size={20}
+                      color="#7159c1"
+                      onClick={() => incrementAmount(product)}
+                    />
                   </button>
                 </div>
               </td>
@@ -66,7 +86,12 @@ function Cart({ cart, total, removeFromCart , updateAmmount}) {
                 <button
                   type="button"
                   onClick={() =>
-                    removeFromCart({ type: 'REMOVE_FROM_CART', id: product.id })
+                    dispatch(
+                      CartActions.removeFromCart({
+                        type: 'REMOVE_FROM_CART',
+                        id: product.id,
+                      })
+                    )
                   }
                 >
                   <MdDelete color="#7159c1" size={20} />
@@ -86,21 +111,3 @@ function Cart({ cart, total, removeFromCart , updateAmmount}) {
     </Container>
   );
 }
-
-const mapStateToProps = state => ({
-  cart: state.cart.map(product => ({  
-    ...product,
-    subtotal: formatPrice(product.price * product.ammount),
-  })),
-  total: formatPrice(state.cart.reduce((total, product) => {
-    return total + product.ammount * product.price;
-  }, 0)),
-});
-
-const mapDispatchToProps = dispatch =>
-  bindActionCreators(CartActions, dispatch);
-
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps
-)(Cart);
